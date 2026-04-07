@@ -1,0 +1,75 @@
+let bubbleGenerateInterval = null; // 자동 생성 타이머 변수 추가
+
+function createSingleBubble() {
+  const container = document.getElementById('bubbles-container');
+  
+  // 화면에 거품이 너무 많아지지 않도록 최대 개수 제한 (예: 20개)
+  if (container.childElementCount >= 20) return;
+
+  const b = document.createElement('div');
+  b.className = 'bubble-item absolute float-bubble w-16 h-16 rounded-full';
+  
+  // 위치 랜덤 설정
+  b.style.left = Math.random() * 85 + '%';
+  b.style.top = Math.random() * 80 + '%';
+  
+  // 색상 다양화 (아이들이 좋아하도록 알록달록하게)
+  const colors = [
+    'rgba(100,200,255,0.6)', // 파랑
+    'rgba(255,150,200,0.6)', // 핑크
+    'rgba(150,255,150,0.6)', // 연두
+    'rgba(255,230,100,0.6)'  // 노랑
+  ];
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+  
+  b.style.background = `radial-gradient(circle at 30% 30%, white, ${randomColor})`;
+  b.style.border = '2px solid rgba(255,255,255,0.8)';
+  b.dataset.alive = 'true';
+  
+  container.appendChild(b);
+}
+
+function startGame() {
+  score = 0;
+  timeLeft = 30;
+  gameActive = true;
+  document.getElementById('bubble-score').innerText = score;
+  
+  const container = document.getElementById('bubbles-container');
+  container.innerHTML = '';
+
+  // 시작하자마자 거품 10개 생성
+  for(let i=0; i<10; i++) createSingleBubble();
+
+  // 1. [핵심] 0.5초마다 자동으로 거품 생성 (빨리 생성되도록 설정)
+  if (bubbleGenerateInterval) clearInterval(bubbleGenerateInterval);
+  bubbleGenerateInterval = setInterval(() => {
+    if (gameActive) createSingleBubble();
+  }, 500); // 500ms = 0.5초
+
+  // 2. 게임 시간 타이머
+  const timer = setInterval(() => {
+    timeLeft--;
+    document.getElementById('bubble-timer').innerText = timeLeft;
+    
+    if(timeLeft <= 0) {
+      clearInterval(timer);
+      clearInterval(bubbleGenerateInterval); // 게임 종료 시 생성 중단
+      gameActive = false;
+      switchScreen('success');
+    }
+  }, 1000);
+}
+
+// 거품 터뜨릴 때도 즉시 하나 더 생성해서 흐름 유지
+function popBubble(b) {
+  b.dataset.alive = 'false';
+  b.classList.add('pop-bubble');
+  score += 10;
+  document.getElementById('bubble-score').innerText = score;
+  
+  setTimeout(() => {
+    b.remove();
+    createSingleBubble(); // 터지자마자 즉시 보충
+  }, 400);
+}
