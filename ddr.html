@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="ko" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>신나는 동작 인식 게임</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&amp;family=Gaegu:wght@400;700&amp;display=swap" rel="stylesheet">
+  <style>
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; height:100%; overflow:hidden; }
+body { font-family: 'Jua', sans-serif; }
+
+/* Bubble animation */
+@keyframes floatBubble {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes popBubble {
+  0% { transform: scale(1); opacity:1; }
+  50% { transform: scale(1.6); opacity:0.5; }
+  100% { transform: scale(0); opacity:0; }
+}
+@keyframes shimmer {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+  100% { filter: brightness(1); }
+}
+@keyframes treePan {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-200px); }
+}
+@keyframes squirrelRun {
+  0% { transform: translateX(0) scaleX(-1); }
+  50% { transform: translateX(20px) scaleX(-1) translateY(-5px); }
+  100% { transform: translateX(0) scaleX(-1); }
+}
+@keyframes blinkIcon {
+  0%,100% { opacity:1; }
+  50% { opacity:0.3; }
+}
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity:1; }
+  100% { transform: translateY(300px) rotate(720deg); opacity:0; }
+}
+@keyframes starFall {
+  0% { transform: translateY(-50px) rotate(0deg) scale(0); opacity:0; }
+  30% { opacity:1; transform: translateY(20px) rotate(180deg) scale(1.2); }
+  100% { transform: translateY(120px) rotate(360deg) scale(0.5); opacity:0; }
+}
+@keyframes bounce {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity:0; }
+  to { transform: translateY(0); opacity:1; }
+}
+.float-bubble { animation: floatBubble 3s ease-in-out infinite; }
+.pop-bubble { animation: popBubble 0.4s ease-out forwards; }
+.shimmer { animation: shimmer 1.5s ease-in-out infinite; }
+.blink-icon { animation: blinkIcon 1s ease-in-out infinite; }
+.bounce-anim { animation: bounce 0.8s ease-in-out infinite; }
+.slide-up { animation: slideUp 0.5s ease-out both; }
+
+/* 3D card style */
+.card-3d {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 8px 0 rgba(0,0,0,0.1), 0 12px 30px rgba(0,0,0,0.08);
+  transition: transform 0.2s;
+}
+.card-3d:hover { transform: translateY(-2px); }
+
+/* Toggle switch */
+.toggle-track {
+  width: 52px; height: 28px; border-radius: 14px; position: relative; cursor: pointer; transition: background 0.3s;
+}
+.toggle-track.on { background: #FF8C42; }
+.toggle-track.off { background: #ccc; }
+.toggle-thumb {
+  width: 24px; height: 24px; border-radius: 50%; background: white; position: absolute; top: 2px; transition: left 0.3s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.toggle-track.on .toggle-thumb { left: 26px; }
+.toggle-track.off .toggle-thumb { left: 2px; }
+
+/* Nav */
+.nav-btn { 
+  padding: 10px 16px; border-radius: 16px; font-family: 'Jua'; font-size: 14px; cursor: pointer; 
+  border: 3px solid transparent; transition: all 0.2s; 
+}
+.nav-btn.active { 
+  background: #FFF3C4; border-color: #FFD93D; color: #B8860B; 
+  box-shadow: 0 4px 0 #E6C235;
+}
+.nav-btn:not(.active) { background: white; color: #666; }
+.nav-btn:not(.active):hover { background: #f0f0f0; }
+
+/* Slider */
+input[type=range] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: #e0e0e0; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #FF8C42; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full flex flex-col" style="background: linear-gradient(135deg, #FFF9C4 0%, #E3F2FD 50%, #FFF9C4 100%);">
+   <!-- Fixed Navigation -->
+   <nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 9999; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); box-shadow: 0 2px 8px rgba(0,0,0,0.1);" class="flex items-center justify-center gap-2 p-3 flex-shrink-0"><button class="nav-btn active" data-screen="bubble" onclick="switchScreen('bubble');">🫧 거품파티</button> <button class="nav-btn" data-screen="running" onclick="switchScreen('running');">🐿️ 달리기</button> <button class="nav-btn" data-screen="success" onclick="switchScreen('success');">🏆 성공!</button> <button class="nav-btn" data-screen="teacher" onclick="switchScreen('teacher');">⚙️ 선생님</button>
+   </nav><!-- Main content with top padding -->
+   <div style="margin-top: 70px; height: calc(100% - 70px); display: flex; flex-direction: column;">
+    <!-- SCREEN 1: Bubble Party -->
+    <div id="screen-bubble" class="flex-1 flex flex-col items-center p-4 gap-3 overflow-auto">
+     <!-- Header -->
+     <div class="flex items-center gap-3 slide-up">
+      <div style="font-size:48px;" class="bounce-anim">
+       🐥
+      </div>
+      <h1 id="bubble-title" class="text-xl md:text-2xl text-center" style="color:#B8860B; text-shadow: 0 2px 0 rgba(0,0,0,0.05);">빨리 움직여서 거품을 없애자!</h1>
+     </div><!-- Camera Frame with Bubbles -->
+     <div class="relative w-full flex-1 max-w-lg card-3d overflow-hidden" style="min-height: 280px; background: linear-gradient(180deg, #87CEEB 0%, #B0E0E6 100%);">
+      <!-- Camera placeholder -->
+      <div class="absolute inset-0 flex items-center justify-center">
+       <div class="text-center" style="color: rgba(255,255,255,0.6);">
+        <div style="font-size:64px;">
+         📷
+        </div>
+        <p style="font-family:'Jua'; font-size:14px;">카메라 영역</p>
+       </div>
+      </div><!-- Bubbles container -->
+      <div id="bubbles-container" class="absolute inset-0 pointer-events-none"></div><!-- Click overlay to pop bubbles -->
+      <div class="absolute inset-0 cursor-pointer z-10" onclick="popNearby(event)"></div>
+     </div><!-- Score & Timer -->
+     <div class="flex items-center justify-between w-full max-w-lg slide-up" style="animation-delay:0.2s;">
+      <div class="card-3d px-5 py-3 flex items-center gap-2">
+       <span style="font-size:28px;">⭐</span> <span id="bubble-score" class="text-2xl" style="color:#FF8C42;">0점</span>
+      </div>
+      <div class="card-3d px-5 py-3 flex items-center gap-2">
+       <span style="font-size:28px;">⏰</span> <span id="bubble-timer" class="text-2xl" style="color:#4A90D9;">30초</span>
+      </div>
+     </div><button onclick="startBubbleGame()" class="card-3d px-8 py-3 text-lg cursor-pointer border-none" style="background: linear-gradient(180deg, #FFD93D, #FFB800); color: #7A5C00; box-shadow: 0 5px 0 #CC9500;"> 🎮 게임 시작! </button>
+    </div><!-- SCREEN 2: Running Game -->
+    <div id="screen-running" class="flex-1 flex-col items-center p-4 gap-3 overflow-auto" style="display:none; background: linear-gradient(180deg, #A8E6CF 0%, #DCEDC1 40%, #8BC34A 100%);">
+     <!-- Header -->
+     <div class="flex items-center justify-between w-full max-w-lg slide-up">
+      <h1 id="running-title" class="text-xl" style="color:#2E7D32; font-family:'Gaegu',cursive; font-weight:700;">다람쥐를 피해서 달려라!</h1>
+      <div class="flex gap-1" id="hearts-container">
+       <span style="font-size:28px;">❤️</span> <span style="font-size:28px;">❤️</span> <span style="font-size:28px;">❤️</span>
+      </div>
+     </div><!-- Game area -->
+     <div class="relative w-full flex-1 max-w-lg card-3d overflow-hidden" style="min-height:300px; background: linear-gradient(180deg, #81C784 0%, #66BB6A 60%, #795548 100%); border: 4px solid #4CAF50;">
+      <!-- Trees background -->
+      <div id="trees-bg" class="absolute bottom-0 left-0 w-full" style="height:70%; display:flex; align-items:flex-end; gap:40px; overflow:hidden;">
+       <div class="tree-group flex gap-10" style="min-width:200%;">
+        <span style="font-size:60px;">🌲</span><span style="font-size:50px;">🌳</span><span style="font-size:45px;">🍄</span> <span style="font-size:55px;">🌲</span><span style="font-size:40px;">🏡</span><span style="font-size:60px;">🌳</span> <span style="font-size:50px;">🌲</span><span style="font-size:35px;">🍄</span><span style="font-size:55px;">🌳</span> <span style="font-size:45px;">🌲</span><span style="font-size:60px;">🌳</span><span style="font-size:40px;">🏡</span>
+       </div>
+      </div><!-- Camera placeholder -->
+      <div class="absolute inset-0 flex items-center justify-center" style="z-index:1;">
+       <div class="text-center" style="color:rgba(255,255,255,0.5);">
+        <div style="font-size:64px;">
+         📷
+        </div>
+        <p style="font-family:'Gaegu'; font-size:14px; font-weight:700;">카메라 영역</p>
+       </div>
+      </div><!-- Squirrel -->
+      <div id="squirrel" class="absolute" style="bottom:15%; left:10%; font-size:60px; z-index:5; animation: squirrelRun 0.6s ease-in-out infinite;">
+       🐿️
+      </div><!-- Sit mission icon -->
+      <div id="sit-icon" class="absolute blink-icon" style="top:10px; right:10px; z-index:5; background:rgba(255,255,255,0.85); border-radius:16px; padding:8px 14px; display:none;">
+       <div class="text-center">
+        <div style="font-size:32px;">
+         🧎
+        </div>
+        <div style="font-size:12px; color:#D32F2F; font-weight:bold;">
+         앉기!
+        </div>
+       </div>
+      </div><!-- Direction arrows -->
+      <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-4" style="z-index:5;">
+       <div style="font-size:36px; opacity:0.7;">
+        🏃
+       </div>
+       <div style="font-size:20px; color:white; align-self:center;">
+        ▶▶▶
+       </div>
+      </div>
+     </div><!-- Controls -->
+     <div class="flex gap-3 w-full max-w-lg slide-up" style="animation-delay:0.15s;">
+      <button onclick="toggleRunning()" id="run-btn" class="card-3d flex-1 py-3 text-lg cursor-pointer border-none" style="background:linear-gradient(180deg,#66BB6A,#43A047); color:white;"> 🏃 달리기! </button> <button onclick="doSit()" id="sit-btn" class="card-3d flex-1 py-3 text-lg cursor-pointer border-none" style="background:linear-gradient(180deg,#42A5F5,#1E88E5); color:white;"> 🧎 앉기! </button>
+     </div>
+    </div><!-- SCREEN 3: Success -->
+    <div id="screen-success" class="flex-1 flex-col items-center justify-center p-4 gap-3 overflow-auto" style="display:none; background: linear-gradient(180deg, #FFF9C4, #FFE0EC, #E3F2FD);">
+     <div id="confetti-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index:0;"></div>
+     <div class="relative z-10 flex flex-col items-center gap-3 w-full max-w-md">
+      <!-- Stars falling -->
+      <div class="flex gap-2 mb-1">
+       <span class="shimmer" style="font-size:40px; animation-delay:0s;">⭐</span> <span class="shimmer" style="font-size:50px; animation-delay:0.3s;">🌟</span> <span class="shimmer" style="font-size:40px; animation-delay:0.6s;">⭐</span>
+      </div><!-- Bear with crown -->
+      <div class="slide-up" style="font-size:100px; line-height:1;">
+       🐻
+      </div>
+      <div class="slide-up" style="font-size:48px; margin-top:-30px;">
+       👑
+      </div><!-- Message -->
+      <div class="card-3d px-8 py-4 text-center slide-up" style="animation-delay:0.2s; background: linear-gradient(135deg, #FFE0EC, #FFF9C4);">
+       <h1 id="success-msg" class="text-2xl md:text-3xl" style="color:#E91E63; font-family:'Jua';">최고예요! 미션 성공!</h1>
+      </div><!-- Fireworks -->
+      <div class="flex gap-3">
+       <span style="font-size:36px;" class="bounce-anim">🎆</span> <span style="font-size:36px;" class="bounce-anim">🎇</span> <span style="font-size:36px;" class="bounce-anim">🎆</span>
+      </div><!-- Animal stickers -->
+      <div class="flex gap-3 mt-2 slide-up" style="animation-delay:0.4s;">
+       <div id="sticker-0" class="card-3d p-3 shimmer" style="font-size:36px;">
+        🐯
+       </div>
+       <div id="sticker-1" class="card-3d p-3 shimmer" style="font-size:36px;">
+        🐰
+       </div>
+       <div id="sticker-2" class="card-3d p-3 shimmer" style="font-size:36px;">
+        🐵
+       </div>
+       <div id="sticker-3" class="card-3d p-3" style="font-size:36px; opacity:0.3;">
+        🦊
+       </div>
+       <div id="sticker-4" class="card-3d p-3" style="font-size:36px; opacity:0.3;">
+        🐼
+       </div>
+      </div>
+      <p class="text-sm" style="color:#888;">완료한 미션: 3 / 5</p>
+     </div>
+    </div><!-- SCREEN 4: Teacher Settings -->
+    <div id="screen-teacher" class="flex-1 flex-col p-4 gap-4 overflow-auto" style="display:none; background: #F5F5F5;">
+     <div class="max-w-2xl mx-auto w-full flex flex-col gap-4">
+      <h1 class="text-2xl slide-up" style="color:#333; font-family:'Jua';">⚙️ 선생님 설정 패널</h1>
+      <div class="flex flex-col md:flex-row gap-4">
+       <!-- Mission List -->
+       <div class="card-3d p-5 flex-1 slide-up" style="animation-delay:0.1s;">
+        <h2 class="text-lg mb-3" style="color:#FF8C42;">📋 미션 목록</h2>
+        <div class="flex flex-col gap-2" id="mission-list">
+         <div class="flex items-center gap-3 p-3 rounded-xl bg-orange-50 border-2 border-orange-200 cursor-grab" draggable="true" ondragstart="dragStart(event,0)" ondragover="dragOver(event)" ondrop="dropItem(event,0)">
+          <span style="color:#ccc; cursor:grab;">☰</span> <span style="font-size:24px;">🫧</span> <span class="flex-1" style="color:#333;">거품 터뜨리기</span> <span class="text-xs px-2 py-1 rounded-full" style="background:#FFD93D; color:#7A5C00;">활성</span>
+         </div>
+         <div class="flex items-center gap-3 p-3 rounded-xl bg-orange-50 border-2 border-orange-200 cursor-grab" draggable="true" ondragstart="dragStart(event,1)" ondragover="dragOver(event)" ondrop="dropItem(event,1)">
+          <span style="color:#ccc; cursor:grab;">☰</span> <span style="font-size:24px;">🐿️</span> <span class="flex-1" style="color:#333;">동물 따돌리기</span> <span class="text-xs px-2 py-1 rounded-full" style="background:#FFD93D; color:#7A5C00;">활성</span>
+         </div>
+        </div>
+       </div><!-- Settings -->
+       <div class="card-3d p-5 flex-1 flex flex-col gap-5 slide-up" style="animation-delay:0.2s;">
+        <h2 class="text-lg" style="color:#FF8C42;">🎛️ 설정</h2><!-- Motion mode toggle -->
+        <div>
+         <p class="text-sm mb-2" style="color:#666;">동작 인식 모드</p>
+         <div class="flex items-center gap-3">
+          <span class="text-sm" style="color:#999;">수동</span>
+          <div id="motion-toggle" class="toggle-track on" onclick="toggleMotion()">
+           <div class="toggle-thumb"></div>
+          </div><span class="text-sm" style="color:#FF8C42; font-weight:bold;">자동</span>
+         </div>
+        </div><!-- Speed slider -->
+        <div>
+         <p class="text-sm mb-2" style="color:#666;">달리기 속도</p>
+         <div class="flex items-center gap-3">
+          <span>🐢</span> <input type="range" min="1" max="5" value="3" id="speed-slider" oninput="updateSpeed(this.value)"> <span>🐇</span>
+         </div>
+         <p class="text-center text-sm mt-1" style="color:#FF8C42;" id="speed-label">보통 (3단계)</p>
+        </div><!-- Game time -->
+        <div>
+         <p class="text-sm mb-2" style="color:#666;">게임 시간</p>
+         <div class="flex gap-2">
+          <button onclick="setTime(30)" class="time-btn card-3d px-4 py-2 text-sm cursor-pointer border-none" style="background:#FFF3C4; color:#B8860B;">30초</button> <button onclick="setTime(60)" class="time-btn card-3d px-4 py-2 text-sm cursor-pointer border-none bg-white" style="color:#666;">60초</button> <button onclick="setTime(90)" class="time-btn card-3d px-4 py-2 text-sm cursor-pointer border-none bg-white" style="color:#666;">90초</button>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+// ─── Config & SDK ───
+const defaultConfig = {
+  background_color: '#FFF9C4',
+  surface_color: '#FFFFFF',
+  text_color: '#333333',
+  primary_action_color: '#FFD93D',
+  secondary_action_color: '#4A90D9',
+  font_family: 'Jua',
+  font_size: 16,
+  bubble_title: '빨리 움직여서 거품을 없애자!',
+  running_title: '다람쥐를 피해서 달려라!',
+  success_message: '최고예요! 미션 성공!'
+};
+
+function applyConfig(c) {
+  const f = c.font_family || defaultConfig.font_family;
+  const fs = c.font_size || defaultConfig.font_size;
+  document.body.style.fontFamily = `${f}, 'Jua', sans-serif`;
+  
+  const bt = document.getElementById('bubble-title');
+  if (bt) bt.textContent = c.bubble_title || defaultConfig.bubble_title;
+  const rt = document.getElementById('running-title');
+  if (rt) rt.textContent = c.running_title || defaultConfig.running_title;
+  const sm = document.getElementById('success-msg');
+  if (sm) sm.textContent = c.success_message || defaultConfig.success_message;
+
+  // Font sizes
+  document.querySelectorAll('h1').forEach(el => el.style.fontSize = `${fs * 1.5}px`);
+  document.querySelectorAll('h2').forEach(el => el.style.fontSize = `${fs * 1.2}px`);
+  document.querySelectorAll('p, span, button').forEach(el => {
+    if (!el.closest('nav')) el.style.fontFamily = `${f}, 'Jua', sans-serif`;
+  });
+}
+
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (config) => applyConfig(config),
+  mapToCapabilities: (config) => ({
+    recolorables: [
+      { get: () => config.background_color || defaultConfig.background_color, set: v => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+      { get: () => config.surface_color || defaultConfig.surface_color, set: v => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+      { get: () => config.text_color || defaultConfig.text_color, set: v => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+      { get: () => config.primary_action_color || defaultConfig.primary_action_color, set: v => { config.primary_action_color = v; window.elementSdk.setConfig({ primary_action_color: v }); } },
+      { get: () => config.secondary_action_color || defaultConfig.secondary_action_color, set: v => { config.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); } },
+    ],
+    borderables: [],
+    fontEditable: {
+      get: () => config.font_family || defaultConfig.font_family,
+      set: v => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); }
+    },
+    fontSizeable: {
+      get: () => config.font_size || defaultConfig.font_size,
+      set: v => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); }
+    }
+  }),
+  mapToEditPanelValues: (config) => new Map([
+    ['bubble_title', config.bubble_title || defaultConfig.bubble_title],
+    ['running_title', config.running_title || defaultConfig.running_title],
+    ['success_message', config.success_message || defaultConfig.success_message],
+  ])
+});
+
+// ─── Screen Navigation ───
+function switchScreen(name) {
+  ['bubble','running','success','teacher'].forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    el.style.display = s === name ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.screen === name);
+  });
+  if (name === 'success') spawnConfetti();
+  if (name === 'bubble') spawnBubbles();
+}
+
+// ─── BUBBLE GAME ───
+let bubbles = [];
+let bubbleScore = 0;
+let bubbleTime = 30;
+let bubbleInterval = null;
+let bubbleTimerInterval = null;
+const BUBBLE_COLORS = ['#FF6B6B','#4ECDC4','#FFE66D','#A78BFA','#FB923C','#34D399','#F472B6','#60A5FA'];
+
+function spawnBubbles() {
+  const container = document.getElementById('bubbles-container');
+  container.innerHTML = '';
+  bubbles = [];
+  for (let i = 0; i < 12; i++) createBubble(container);
+}
+
+function createBubble(container) {
+  const b = document.createElement('div');
+  const size = 40 + Math.random() * 50;
+  const color = BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)];
+  b.style.cssText = `
+    position:absolute; width:${size}px; height:${size}px; border-radius:50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), ${color}80);
+    border: 2px solid ${color}40;
+    left:${Math.random()*85}%; top:${Math.random()*80}%;
+    pointer-events:none;
+    animation-delay: ${Math.random()*2}s;
+  `;
+  b.classList.add('float-bubble');
+  b.dataset.alive = 'true';
+  container.appendChild(b);
+  bubbles.push(b);
+}
+
+function popNearby(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  let popped = false;
+  bubbles.forEach(b => {
+    if (b.dataset.alive !== 'true') return;
+    const bx = b.offsetLeft + b.offsetWidth/2;
+    const by = b.offsetTop + b.offsetHeight/2;
+    const dist = Math.hypot(x - bx, y - by);
+    if (dist < 60) {
+      b.dataset.alive = 'false';
+      b.classList.remove('float-bubble');
+      b.classList.add('pop-bubble');
+      popped = true;
+      setTimeout(() => b.remove(), 400);
+    }
+  });
+  if (popped) {
+    bubbleScore += 10;
+    document.getElementById('bubble-score').textContent = bubbleScore + '점';
+    // Respawn
+    setTimeout(() => {
+      const container = document.getElementById('bubbles-container');
+      createBubble(container);
+    }, 800);
+  }
+}
+
+function startBubbleGame() {
+  bubbleScore = 0;
+  bubbleTime = 30;
+  document.getElementById('bubble-score').textContent = '0점';
+  document.getElementById('bubble-timer').textContent = '30초';
+  spawnBubbles();
+  clearInterval(bubbleTimerInterval);
+  bubbleTimerInterval = setInterval(() => {
+    bubbleTime--;
+    document.getElementById('bubble-timer').textContent = bubbleTime + '초';
+    if (bubbleTime <= 0) {
+      clearInterval(bubbleTimerInterval);
+      switchScreen('success');
+    }
+  }, 1000);
+}
+
+// ─── RUNNING GAME ───
+let isRunning = false;
+let treeAnim = null;
+let sitVisible = false;
+let sitTimeout = null;
+
+function toggleRunning() {
+  isRunning = !isRunning;
+  const btn = document.getElementById('run-btn');
+  const trees = document.querySelector('.tree-group');
+  if (isRunning) {
+    btn.textContent = '⏹ 멈추기!';
+    trees.style.animation = 'treePan 3s linear infinite';
+    // Show sit mission randomly
+    sitTimeout = setTimeout(() => {
+      document.getElementById('sit-icon').style.display = 'block';
+      sitVisible = true;
+    }, 2000 + Math.random() * 3000);
+  } else {
+    btn.textContent = '🏃 달리기!';
+    trees.style.animation = 'none';
+    clearTimeout(sitTimeout);
+  }
+}
+
+function doSit() {
+  if (sitVisible) {
+    document.getElementById('sit-icon').style.display = 'none';
+    sitVisible = false;
+    bubbleScore += 20;
+  }
+}
+
+// ─── SUCCESS CONFETTI ───
+function spawnConfetti() {
+  const container = document.getElementById('confetti-container');
+  container.innerHTML = '';
+  const emojis = ['🎉','⭐','🌟','💫','🎊','✨'];
+  for (let i = 0; i < 20; i++) {
+    const c = document.createElement('div');
+    c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    c.style.cssText = `
+      position:absolute; font-size:${20+Math.random()*20}px;
+      left:${Math.random()*100}%; top:-20px;
+      animation: confetti ${2+Math.random()*2}s ease-out ${Math.random()*1}s forwards;
+    `;
+    container.appendChild(c);
+  }
+}
+
+// ─── TEACHER SETTINGS ───
+let motionAuto = true;
+function toggleMotion() {
+  motionAuto = !motionAuto;
+  const t = document.getElementById('motion-toggle');
+  t.classList.toggle('on', motionAuto);
+  t.classList.toggle('off', !motionAuto);
+}
+
+function updateSpeed(v) {
+  const labels = ['아주 느림','느림','보통','빠름','아주 빠름'];
+  document.getElementById('speed-label').textContent = `${labels[v-1]} (${v}단계)`;
+}
+
+function setTime(s) {
+  bubbleTime = s;
+  document.querySelectorAll('.time-btn').forEach(btn => {
+    const isActive = btn.textContent.trim() === s + '초';
+    btn.style.background = isActive ? '#FFF3C4' : 'white';
+    btn.style.color = isActive ? '#B8860B' : '#666';
+  });
+}
+
+let dragIdx = null;
+function dragStart(e, i) { dragIdx = i; }
+function dragOver(e) { e.preventDefault(); }
+function dropItem(e, i) {
+  e.preventDefault();
+  if (dragIdx === null || dragIdx === i) return;
+  const list = document.getElementById('mission-list');
+  const items = [...list.children];
+  if (dragIdx < i) list.insertBefore(items[dragIdx], items[i].nextSibling);
+  else list.insertBefore(items[dragIdx], items[i]);
+  dragIdx = null;
+}
+
+// Init
+spawnBubbles();
+lucide.createIcons();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e84d7af56a2b2de',t:'MTc3NTUyMDk3NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
